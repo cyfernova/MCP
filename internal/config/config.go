@@ -1,0 +1,186 @@
+package config
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+)
+
+const (
+	defaultListenAddr       = ":9090"
+	defaultBackendBaseURL   = "http://localhost:8080"
+	defaultJWKSURL          = "http://localhost:8080/.well-known/jwks.json"
+	defaultIssuer           = "your-backend"
+	defaultAudience         = "mcp"
+	defaultRateLimitRPS     = 5
+	defaultRateLimitBurst   = 10
+	defaultLogLevel         = "info"
+	defaultRequestBodyBytes = int64(1 << 20) // 1 MiB
+	defaultResponseBytes    = int64(2 << 20) // 2 MiB
+)
+
+// Config holds runtime configuration for the MCP server.
+type Config struct {
+	ListenAddr string
+	LogLevel   string
+
+	TLS TLSConfig
+
+	Backend BackendConfig
+	Auth    AuthConfig
+
+	RateLimit RateLimitConfig
+	Limits    LimitConfig
+	Server    ServerConfig
+}
+
+type TLSConfig struct {
+	CertFile string
+	KeyFile  string
+	CAFile   string
+}
+
+type BackendConfig struct {
+	BaseURL string
+	Timeout time.Duration
+}
+
+type AuthConfig struct {
+	JWKSURL              string
+	Issuer               string
+	Audience             string
+	JWKSRefreshInterval  time.Duration
+	JWTClockSkew         time.Duration
+	AllowedSigningAlgs   []string
+	JWKSHTTPTimeout      time.Duration
+	UnknownKIDMinRefresh time.Duration
+}
+
+type RateLimitConfig struct {
+	RPS   float64
+	Burst int
+}
+
+type LimitConfig struct {
+	MaxRequestBodyBytes  int64
+	MaxResponseBodyBytes int64
+}
+
+type ServerConfig struct {
+	ReadHeaderTimeout time.Duration
+	ReadTimeout       time.Duration
+	WriteTimeout      time.Duration
+	IdleTimeout       time.Duration
+	ShutdownTimeout   time.Duration
+}
+
+// Load reads environment configuration and applies safe defaults.
+func Load() (Config, error) {
+	cfg := Config{
+		ListenAddr: getEnv("MCP_LISTEN_ADDR", defaultListenAddr),
+		LogLevel:   strings.ToLower(getEnv("LOG_LEVEL", defaultLogLevel)),
+		TLS: TLSConfig{
+			CertFile: strings.TrimSpace(os.Getenv("MCP_TLS_CERT_FILE")),
+			KeyFile:  strings.TrimSpace(os.Getenv("MCP_TLS_KEY_FILE")),
+			CAFile:   strings.TrimSpace(os.Getenv("MCP_TLS_CA_FILE")),
+		},
+		Backend: BackendConfig{
+			BaseURL: strings.TrimRight(getEnv("BACKEND_BASE_URL", defaultBackendBaseURL), "/"),
+			Timeout: 5 * time.Second,
+		},
+		Auth: AuthConfig{
+			JWKSURL:              getEnv("AUTH_JWKS_URL", defaultJWKSURL),
+			Issuer:               getEnv("AUTH_ISSUER", defaultIssuer),
+			Audience:             getEnv("AUTH_AUDIENCE", defaultAudience),
+			JWKSRefreshInterval:  5 * time.Minute,
+			JWTClockSkew:         30 * time.Second,
+			AllowedSigningAlgs:   []string{"RS256", "ES256"},
+			JWKSHTTPTimeout:      5 * time.Second,
+			UnknownKIDMinRefresh: 30 * time.Second,
+		},
+		RateLimit: RateLimitConfig{
+			RPS:   defaultRateLimitRPS,
+			Burst: defaultRateLimitBurst,
+		},
+		Limits: LimitConfig{
+			MaxRequestBodyBytes:  defaultRequestBodyBytes,
+			MaxResponseBodyBytes: defaultResponseBytes,
+		},
+		Server: ServerConfig{
+			ReadHeaderTimeout: 5 * time.Second,
+			ReadTimeout:       10 * time.Second,
+			WriteTimeout:      15 * time.Second,
+			IdleTimeout:       60 * time.Second,
+			ShutdownTimeout:   15 * time.Second,
+		},
+	}
+
+	rps, err := parseFloatEnv("RATE_LIMIT_RPS", defaultRateLimitRPS)
+	if err != nil {
+		return Config{}, err
+	}
+	if rps <= 0 {
+		return Config{}, errors.New("RATE_LIMIT_RPS must be greater than 0")
+	}
+	cfg.RateLimit.RPS = rps
+
+	burst, err := parseIntEnv("RATE_LIMIT_BURST", defaultRateLimitBurst)
+	if err != nil {
+		return Config{}, err
+	}
+	if burst <= 0 {
+		return Config{}, errors.New("RATE_LIMIT_BURST must be greater than 0")
+	}
+	cfg.RateLimit.Burst = burst
+
+	if cfg.TLS.CertFile == "" {
+		return Config{}, errors.New("MCP_TLS_CERT_FILE is required")
+	}
+	if cfg.TLS.KeyFile == "" {
+		return Config{}, errors.New("MCP_TLS_KEY_FILE is required")
+	}
+	if cfg.TLS.CAFile == "" {
+		return Config{}, errors.New("MCP_TLS_CA_FILE is required")
+	}
+
+	if cfg.LogLevel != "debug" && cfg.LogLevel != "info" && cfg.LogLevel != "warn" && cfg.LogLevel != "error" {
+		return Config{}, fmt.Errorf("unsupported LOG_LEVEL: %q", cfg.LogLevel)
+	}
+
+	return cfg, nil
+}
+
+func getEnv(key, fallback string) string {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func parseFloatEnv(key string, fallback float64) (float64, error) {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s: %w", key, err)
+	}
+	return parsed, nil
+}
+
+func parseIntEnv(key string, fallback int) (int, error) {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s: %w", key, err)
+	}
+	return parsed, nil
+}
