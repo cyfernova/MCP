@@ -98,3 +98,23 @@ func TestPrepareAllowsRouteSpecificHeaders(t *testing.T) {
 		t.Fatalf("expected Content-Type header, got %q", got)
 	}
 }
+
+func TestPrepareRejectsHeaderWithControlChars(t *testing.T) {
+	reg, err := NewRegistry()
+	if err != nil {
+		t.Fatalf("new registry: %v", err)
+	}
+
+	spec, ok := findToolSpec("POST", "/api/v1/business-profiles/:id/logo")
+	if !ok {
+		t.Fatal("missing POST /api/v1/business-profiles/:id/logo tool")
+	}
+
+	_, err = reg.Prepare(spec.Name, json.RawMessage(`{"path":{"id":"b_123"},"headers":{"Content-Type":"image/png\r\nx-extra: injected"}}`))
+	if err == nil {
+		t.Fatal("expected validation error for header control characters")
+	}
+	if !errors.Is(err, ErrInvalidToolArg) {
+		t.Fatalf("expected ErrInvalidToolArg, got %v", err)
+	}
+}

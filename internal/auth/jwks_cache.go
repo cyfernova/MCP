@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -8,11 +9,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"math/big"
 	"net/http"
 	"sync"
 	"time"
+)
+
+const (
+	maxJWKSBodyBytes = int64(1 << 20) // 1 MiB
+	minRSABits       = 2048
 )
 
 type jwksDocument struct {
@@ -166,10 +173,22 @@ func (c *JWKSCache) refresh(ctx context.Context) error {
 		return fmt.Errorf("fetch JWKS: unexpected status %d", resp.StatusCode)
 	}
 
+	bodyReader := io.LimitReader(resp.Body, maxJWKSBodyBytes+1)
+	body, err := io.ReadAll(bodyReader)
+	if err != nil {
+		return fmt.Errorf("read JWKS body: %w", err)
+	}
+	if int64(len(body)) > maxJWKSBodyBytes {
+		return fmt.Errorf("decode JWKS: body exceeds limit")
+	}
+
 	var doc jwksDocument
-	dec := json.NewDecoder(resp.Body)
+	dec := json.NewDecoder(bytes.NewReader(body))
 	if err := dec.Decode(&doc); err != nil {
 		return fmt.Errorf("decode JWKS: %w", err)
+	}
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
+		return fmt.Errorf("decode JWKS: unexpected trailing content")
 	}
 
 	next := make(map[string]any, len(doc.Keys))
@@ -230,6 +249,9 @@ func parseRSAPublicKey(k jwkKey) (*rsa.PublicKey, error) {
 	}
 	if e == 0 {
 		return nil, fmt.Errorf("invalid rsa exponent")
+	}
+	if n.BitLen() < minRSABits {
+		return nil, fmt.Errorf("rsa modulus too small: %d bits", n.BitLen())
 	}
 
 	return &rsa.PublicKey{N: n, E: e}, nil

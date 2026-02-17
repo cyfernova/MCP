@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -38,11 +39,15 @@ func TestCatalogCoverageAndExclusions(t *testing.T) {
 		"/api/v1/ws":                               {},
 		"/api/v1/a2a/v0.3/tasks/stream":            {},
 		"/api/v1/a2a/v0.3/tasks/:taskId/subscribe": {},
+		"/api/v1/admin/local-emails":               {},
 	}
 
 	for _, spec := range generatedToolSpecs {
 		if _, ok := excludedPaths[spec.Path]; ok {
 			t.Fatalf("excluded route unexpectedly present in catalog: %s %s", spec.Method, spec.Path)
+		}
+		if strings.HasPrefix(spec.Path, "/api/v1/admin") {
+			t.Fatalf("admin route unexpectedly present in catalog: %s %s", spec.Method, spec.Path)
 		}
 	}
 
@@ -53,7 +58,6 @@ func TestCatalogCoverageAndExclusions(t *testing.T) {
 		{method: "POST", path: "/api/v1/auth/register"},
 		{method: "POST", path: "/api/v1/auth/login"},
 		{method: "GET", path: "/api/v1/auth/me"},
-		{method: "GET", path: "/api/v1/admin/local-emails"},
 		{method: "GET", path: "/api/v1/ws/stats"},
 		{method: "POST", path: "/api/v1/invoices/:id/send"},
 	}

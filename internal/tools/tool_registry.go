@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
@@ -18,6 +19,26 @@ const swaggerDefinitionsURL = "mem://swagger-definitions.json"
 var (
 	ErrToolNotFound   = errors.New("tool not found")
 	ErrInvalidToolArg = errors.New("invalid tool arguments")
+
+	blockedToolHeaders = map[string]struct{}{
+		"Authorization":       {},
+		"Connection":          {},
+		"Content-Length":      {},
+		"Forwarded":           {},
+		"Host":                {},
+		"Keep-Alive":          {},
+		"Proxy-Authenticate":  {},
+		"Proxy-Authorization": {},
+		"Te":                  {},
+		"Trailer":             {},
+		"Transfer-Encoding":   {},
+		"Upgrade":             {},
+		"X-Forwarded-For":     {},
+		"X-Forwarded-Host":    {},
+		"X-Forwarded-Proto":   {},
+		"X-Real-Ip":           {},
+		"X-Request-Id":        {},
+	}
 )
 
 // Definition is an allowlisted MCP tool mapped to a fixed backend route.
@@ -252,7 +273,24 @@ func buildHeaders(args map[string]any) (map[string]string, error) {
 
 	out := make(map[string]string, len(headersMap))
 	for key, value := range headersMap {
-		out[key] = stringifyScalar(value)
+		rawKey := strings.TrimSpace(key)
+		if rawKey == "" || !isValidHeaderName(rawKey) {
+			return nil, fmt.Errorf("%w: header name %q is invalid", ErrInvalidToolArg, key)
+		}
+
+		canonical := http.CanonicalHeaderKey(rawKey)
+		if canonical == "" {
+			return nil, fmt.Errorf("%w: header name is required", ErrInvalidToolArg)
+		}
+		if _, blocked := blockedToolHeaders[canonical]; blocked {
+			return nil, fmt.Errorf("%w: header %q is not allowed", ErrInvalidToolArg, canonical)
+		}
+
+		stringValue := strings.TrimSpace(stringifyScalar(value))
+		if hasControlChars(stringValue) {
+			return nil, fmt.Errorf("%w: header %q contains invalid characters", ErrInvalidToolArg, canonical)
+		}
+		out[canonical] = stringValue
 	}
 	return out, nil
 }
@@ -291,4 +329,30 @@ func deepCopyMap(in map[string]any) map[string]any {
 		return map[string]any{}
 	}
 	return out
+}
+
+func hasControlChars(value string) bool {
+	for _, r := range value {
+		if r == '\n' || r == '\r' {
+			return true
+		}
+	}
+	return false
+}
+
+func isValidHeaderName(name string) bool {
+	for _, r := range name {
+		if (r >= 'a' && r <= 'z') ||
+			(r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') {
+			continue
+		}
+		switch r {
+		case '!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~':
+			continue
+		default:
+			return false
+		}
+	}
+	return true
 }

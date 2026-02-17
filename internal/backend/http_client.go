@@ -17,6 +17,26 @@ const requestIDHeader = "X-Request-ID"
 
 var ErrResponseTooLarge = errors.New("backend response exceeds allowed size")
 
+var blockedForwardHeaders = map[string]struct{}{
+	"Authorization":       {},
+	"Connection":          {},
+	"Content-Length":      {},
+	"Forwarded":           {},
+	"Host":                {},
+	"Keep-Alive":          {},
+	"Proxy-Authenticate":  {},
+	"Proxy-Authorization": {},
+	"Te":                  {},
+	"Trailer":             {},
+	"Transfer-Encoding":   {},
+	"Upgrade":             {},
+	"X-Forwarded-For":     {},
+	"X-Forwarded-Host":    {},
+	"X-Forwarded-Proto":   {},
+	"X-Real-Ip":           {},
+	"X-Request-Id":        {},
+}
+
 type Request struct {
 	Method      string
 	Path        string
@@ -49,6 +69,12 @@ func NewClient(baseURL string, timeout time.Duration, maxResponseBodyBytes int64
 	}
 	if parsed.Scheme == "" || parsed.Host == "" {
 		return nil, fmt.Errorf("invalid BACKEND_BASE_URL: %q", baseURL)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return nil, fmt.Errorf("BACKEND_BASE_URL must use http or https, got %q", parsed.Scheme)
+	}
+	if parsed.User != nil {
+		return nil, errors.New("BACKEND_BASE_URL must not include credentials")
 	}
 
 	transport := &http.Transport{
@@ -103,19 +129,28 @@ func (c *Client) Do(ctx context.Context, req Request) (*Response, error) {
 	if strings.TrimSpace(req.BearerToken) != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+req.BearerToken)
 	}
-	httpReq.Header.Set(requestIDHeader, req.RequestID)
+	if trimmedRequestID := strings.TrimSpace(req.RequestID); trimmedRequestID != "" {
+		httpReq.Header.Set(requestIDHeader, trimmedRequestID)
+	}
 	for key, value := range req.Headers {
-		canonical := http.CanonicalHeaderKey(strings.TrimSpace(key))
+		rawKey := strings.TrimSpace(key)
+		if rawKey == "" || !isValidHeaderName(rawKey) {
+			continue
+		}
+
+		canonical := http.CanonicalHeaderKey(rawKey)
 		if canonical == "" {
 			continue
 		}
-		switch canonical {
-		case "Authorization", "Content-Length", "Host", "X-Request-Id":
+		if _, blocked := blockedForwardHeaders[canonical]; blocked {
 			continue
 		}
-		httpReq.Header.Set(canonical, value)
+		if hasControlChars(value) {
+			continue
+		}
+		httpReq.Header.Set(canonical, strings.TrimSpace(value))
 	}
-	if len(req.Body) > 0 {
+	if len(req.Body) > 0 && strings.TrimSpace(httpReq.Header.Get("Content-Type")) == "" {
 		httpReq.Header.Set("Content-Type", "application/json")
 	}
 
@@ -138,4 +173,30 @@ func (c *Client) Do(ctx context.Context, req Request) (*Response, error) {
 		Body:       body,
 		Headers:    httpResp.Header.Clone(),
 	}, nil
+}
+
+func hasControlChars(value string) bool {
+	for _, r := range value {
+		if r == '\n' || r == '\r' {
+			return true
+		}
+	}
+	return false
+}
+
+func isValidHeaderName(name string) bool {
+	for _, r := range name {
+		if (r >= 'a' && r <= 'z') ||
+			(r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') {
+			continue
+		}
+		switch r {
+		case '!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~':
+			continue
+		default:
+			return false
+		}
+	}
+	return true
 }

@@ -3,6 +3,8 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -149,8 +151,23 @@ func Load() (Config, error) {
 	if cfg.LogLevel != "debug" && cfg.LogLevel != "info" && cfg.LogLevel != "warn" && cfg.LogLevel != "error" {
 		return Config{}, fmt.Errorf("unsupported LOG_LEVEL: %q", cfg.LogLevel)
 	}
+	if err := validateEndpointURL("BACKEND_BASE_URL", cfg.Backend.BaseURL); err != nil {
+		return Config{}, err
+	}
+	if err := validateEndpointURL("AUTH_JWKS_URL", cfg.Auth.JWKSURL); err != nil {
+		return Config{}, err
+	}
 
 	return cfg, nil
+}
+
+// EndpointForLog returns a minimally sensitive URL representation for logs.
+func EndpointForLog(rawURL string) string {
+	parsed, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return rawURL
+	}
+	return parsed.Scheme + "://" + parsed.Host
 }
 
 func getEnv(key, fallback string) string {
@@ -171,6 +188,51 @@ func parseFloatEnv(key string, fallback float64) (float64, error) {
 		return 0, fmt.Errorf("invalid %s: %w", key, err)
 	}
 	return parsed, nil
+}
+
+func validateEndpointURL(envName, rawValue string) error {
+	value := strings.TrimSpace(rawValue)
+	if value == "" {
+		return fmt.Errorf("%s is required", envName)
+	}
+
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return fmt.Errorf("invalid %s: %w", envName, err)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf("%s must include scheme and host", envName)
+	}
+	if parsed.User != nil {
+		return fmt.Errorf("%s must not include embedded credentials", envName)
+	}
+	if parsed.RawQuery != "" || parsed.Fragment != "" {
+		return fmt.Errorf("%s must not include query params or fragments", envName)
+	}
+
+	switch strings.ToLower(parsed.Scheme) {
+	case "https":
+		return nil
+	case "http":
+		if isLoopbackHost(parsed.Hostname()) {
+			return nil
+		}
+		return fmt.Errorf("%s must use https for non-loopback hosts", envName)
+	default:
+		return fmt.Errorf("%s must use http or https", envName)
+	}
+}
+
+func isLoopbackHost(host string) bool {
+	trimmed := strings.TrimSpace(host)
+	if trimmed == "" {
+		return false
+	}
+	if strings.EqualFold(trimmed, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(trimmed)
+	return ip != nil && ip.IsLoopback()
 }
 
 func parseIntEnv(key string, fallback int) (int, error) {

@@ -396,6 +396,9 @@ func filterRoutes(routes []routeRecord) []routeRecord {
 		if !strings.HasPrefix(route.Path, "/api/v1") {
 			continue
 		}
+		if strings.HasPrefix(route.Path, "/api/v1/admin") {
+			continue
+		}
 		key := route.Method + " " + route.Path
 		if _, ok := excluded[key]; ok {
 			continue
