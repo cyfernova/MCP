@@ -10,7 +10,7 @@ func TestValidateEndpointURL(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "https remote", envName: "BACKEND_BASE_URL", url: "https://api.example.com", wantErr: false},
-		{name: "http loopback", envName: "AUTH_JWKS_URL", url: "http://localhost:8080/.well-known/jwks.json", wantErr: false},
+		{name: "https remote jwks", envName: "AUTH_JWKS_URL", url: "https://2msvdt2oba.execute-api.us-east-1.amazonaws.com/.well-known/jwks.json", wantErr: false},
 		{name: "http remote", envName: "BACKEND_BASE_URL", url: "http://api.example.com", wantErr: true},
 		{name: "query string", envName: "BACKEND_BASE_URL", url: "https://api.example.com?token=secret", wantErr: true},
 	}

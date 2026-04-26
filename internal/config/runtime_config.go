@@ -13,8 +13,8 @@ import (
 
 const (
 	defaultListenAddr       = ":9090"
-	defaultBackendBaseURL   = "http://localhost:8080"
-	defaultJWKSURL          = "http://localhost:8080/.well-known/jwks.json"
+	defaultBackendBaseURL   = "https://2msvdt2oba.execute-api.us-east-1.amazonaws.com/"
+	defaultJWKSURL          = "https://2msvdt2oba.execute-api.us-east-1.amazonaws.com/.well-known/jwks.json"
 	defaultIssuer           = "your-backend"
 	defaultAudience         = "mcp"
 	defaultRateLimitRPS     = 5

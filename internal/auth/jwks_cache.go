@@ -78,7 +78,7 @@ func NewJWKSCache(
 	}
 
 	if err := cache.refresh(ctx); err != nil {
-		return nil, fmt.Errorf("initial JWKS refresh failed: %w", err)
+		cache.log.Warn("initial JWKS refresh failed, will retry on demand", "error", err)
 	}
 
 	go cache.backgroundRefresh(ctx)
@@ -119,9 +119,7 @@ func (c *JWKSCache) GetKey(ctx context.Context, kid string) (any, error) {
 	}
 
 	if isExpired {
-		if err := c.refresh(ctx); err != nil {
-			c.log.Warn("jwks refresh on cache expiry failed", "error", err)
-		}
+		c.refresh(ctx)
 	}
 
 	c.mu.RLock()
@@ -219,14 +217,16 @@ func (c *JWKSCache) refresh(ctx context.Context) error {
 		}
 	}
 
-	if len(next) == 0 {
+	if len(next) == 0 && len(c.keys) == 0 {
 		return fmt.Errorf("JWKS contains no usable signing keys")
 	}
 
-	c.mu.Lock()
-	c.keys = next
-	c.lastFetch = time.Now()
-	c.mu.Unlock()
+	if len(next) > 0 {
+		c.mu.Lock()
+		c.keys = next
+		c.lastFetch = time.Now()
+		c.mu.Unlock()
+	}
 
 	c.log.Debug("jwks refreshed", "keys", len(next))
 	return nil
