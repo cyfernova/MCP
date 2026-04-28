@@ -1,4 +1,4 @@
-.PHONY: help build run clean test certs
+.PHONY: help build run clean test certs swagger
 
 help:
 	@echo "MCP Server Setup"
@@ -9,17 +9,14 @@ help:
 	@echo "  make test    - Run tests"
 	@echo "  make clean   - Clean build artifacts"
 	@echo "  make certs   - Generate self-signed TLS certificates for mTLS"
+	@echo "  make swagger - Generate swagger.json from tool catalog"
 	@echo ""
 
 build:
 	go build -o bin/mcp.exe ./cmd/mcp
 
 run: build
-	@if [ ! -f .env ]; then \
-		echo "Error: .env file not found. Copy .env.example to .env and configure it."; \
-		exit 1; \
-	fi
-	./bin/mcp.exe
+	powershell -Command "Get-Content .env | Where-Object { $$_ -notmatch '^#' -and $$_ -match '=' } | ForEach-Object { $$parts = $$_ -split '=', 2; [Environment]::SetEnvironmentVariable($$parts[0].Trim(), $$parts[1].Trim(), 'Process') }; .\bin\mcp.exe"
 
 test:
 	go test -v ./...
@@ -48,3 +45,10 @@ certs:
 	@echo "  - CA: certs/ca.crt"
 	@echo "  - Server: certs/server.crt, certs/server.key"
 	@echo "  - Client: certs/client.crt, certs/client.key"
+
+# Generate OpenAPI/Swagger spec from tool catalog and embed in binary
+swagger: bin/gen-swagger.exe swagger.json
+	cp swagger.json cmd/swagger-assets/swagger.json
+
+swagger.json: bin/gen-swagger.exe
+	./bin/gen-swagger.exe swagger.json

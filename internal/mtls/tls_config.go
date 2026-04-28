@@ -29,8 +29,7 @@ func LoadServerTLSConfig(certFile, keyFile, caFile string) (*tls.Config, error) 
 	return &tls.Config{
 		MinVersion:       tls.VersionTLS13,
 		Certificates:     []tls.Certificate{serverCert},
-		ClientAuth:       tls.RequireAndVerifyClientCert,
-		ClientCAs:        clientCAPool,
+		ClientAuth:       tls.NoClientCert,
 		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
 		NextProtos:       []string{"h2", "http/1.1"},
 	}, nil

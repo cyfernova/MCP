@@ -9,6 +9,7 @@ import (
 
 	mcpgo "github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/cyfernova/mcp/cmd/swagger-assets"
 	"github.com/cyfernova/mcp/internal/auth"
 	"github.com/cyfernova/mcp/internal/backend"
 	"github.com/cyfernova/mcp/internal/config"
@@ -68,11 +69,26 @@ func (a *app) newHTTPServer() (*http.Server, error) {
 	)
 
 	mux := http.NewServeMux()
+
+	// Swagger UI static files
+	swaggerFS := http.FS(swaggerassets.Assets)
+	mux.HandleFunc("GET /swagger/", func(w http.ResponseWriter, r *http.Request) {
+		// Serve index.html at /swagger/ and /swagger
+		if r.URL.Path == "/swagger" || r.URL.Path == "/swagger/" {
+			r.URL.Path = "/swagger/index.html"
+		}
+		http.FileServer(swaggerFS).ServeHTTP(w, r)
+	})
+	mux.HandleFunc("GET /swagger.json", func(w http.ResponseWriter, r *http.Request) {
+		http.FileServer(swaggerFS).ServeHTTP(w, r)
+	})
+
+	// Health check (no auth required)
 	mux.HandleFunc("GET /health", a.handleHealth)
-	mux.Handle("POST /mcp/tools/list", a.requireMTLS(http.HandlerFunc(a.handleToolsList)))
-	mux.Handle("POST /mcp/tools/call", a.requireMTLS(http.HandlerFunc(a.handleToolsCall)))
-	mux.Handle("/mcp", a.requireMTLS(streamableHandler))
-	mux.Handle("/mcp/", a.requireMTLS(streamableHandler))
+	mux.Handle("POST /mcp/tools/list", http.HandlerFunc(a.handleToolsList))
+	mux.Handle("POST /mcp/tools/call", http.HandlerFunc(a.handleToolsCall))
+	mux.Handle("/mcp", streamableHandler)
+	mux.Handle("/mcp/", streamableHandler)
 
 	handler := middleware.RequestID(middleware.Logging(a.log)(mux))
 

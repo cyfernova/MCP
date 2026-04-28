@@ -48,6 +48,7 @@ type Definition struct {
 	Method      string
 	Path        string
 	Family      string
+	PathParams  []string
 	InputSchema map[string]any
 }
 
@@ -133,6 +134,7 @@ func (r *Registry) List() []Definition {
 			Method:      tool.spec.Method,
 			Path:        tool.spec.Path,
 			Family:      tool.spec.Family,
+			PathParams:  tool.spec.PathParams,
 			InputSchema: deepCopyMap(tool.schemaMap),
 		})
 	}

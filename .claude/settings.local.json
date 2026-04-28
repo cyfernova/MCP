@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make run *)",
+      "Bash(go build *)",
+      "PowerShell(cd \"C:\\\\Users\\\\Tridib Roy Chowdhury\\\\OneDrive\\\\Desktop\\\\CODING\\\\CyperNova\\\\MCP\"; Get-Content .env | Where-Object { $_ -notmatch '^#' -and $_ -match '=' } | ForEach-Object { $parts = $_ -split '=', 2; [Environment]::SetEnvironmentVariable\\($parts[0].Trim\\(\\), $parts[1].Trim\\(\\), 'Process'\\) }; .\\\\bin\\\\mcp.exe)",
+      "PowerShell(netstat *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "Bash(./bin/gen-swagger.exe swagger.json)",
+      "Bash(go run *)",
+      "Bash(python3 -c \"import json; json.load\\(open\\('swagger.json'\\)\\)\")",
+      "Bash(python3 -c \"import sys,json; json.load\\(sys.stdin\\); print\\('Valid JSON'\\)\")",
+      "Bash(curl -sL https://github.com/swagger-api/swagger-ui/archive/refs/tags/v5.20.7.tar.gz)",
+      "Bash(tar -xz --strip-components=1 swagger-ui-5.20.7/dist/)",
+      "Bash(make swagger *)",
+      "Bash(powershell -Command 'Get-Content .env | Where-Object { $_ -notmatch '\\\\''^#'\\\\'' -and $_ -match '\\\\''='\\\\'' } | ForEach-Object { $parts = $_ -split '\\\\''='\\\\'', 2; [Environment]::SetEnvironmentVariable\\($parts[0].Trim\\(\\), $parts[1].Trim\\(\\), '\\\\''Process'\\\\''\\) }; .\\\\bin\\\\mcp.exe')",
+      "Bash(curl -k https://localhost:9090/health)",
+      "Bash(curl -X POST https://localhost:9090/mcp/tools/list --cert 'C:\\\\Users\\\\Tridib Roy Chowdhury\\\\OneDrive\\\\Desktop\\\\CODING\\\\CyperNova\\\\MCP\\\\certs\\\\client.crt' --key 'C:\\\\Users\\\\Tridib Roy Chowdhury\\\\OneDrive\\\\Desktop\\\\CODING\\\\CyperNova\\\\MCP\\\\certs\\\\client.key' --cacert 'C:\\\\Users\\\\Tridib Roy Chowdhury\\\\OneDrive\\\\Desktop\\\\CODING\\\\CyperNova\\\\MCP\\\\certs\\\\ca.crt' -H 'Content-Type: application/json')",
+      "Bash(curl -X POST https://localhost:9090/mcp/tools/list --cert ./certs/client.crt --key ./certs/client.key --cacert ./certs/ca.crt -H 'Content-Type: application/json')",
+      "Bash(curl --version)",
+      "Bash(openssl x509 *)",
+      "Bash(powershell *)",
+      "Bash(openssl pkcs12 *)",
+      "Bash(curl -X POST https://localhost:9090/mcp/tools/list --cert ./client.pfx --cert-type P12 --cacert ./ca.crt -H 'Content-Type: application/json')",
+      "Bash(where curl *)",
+      "Bash(/mingw64/bin/curl --version)",
+      "Bash(/mingw64/bin/curl -X POST https://localhost:9090/mcp/tools/list --cert ./certs/client.crt --key ./certs/client.key --cacert ./certs/ca.crt -H 'Content-Type: application/json')",
+      "Bash(curl -X POST https://localhost:9090/mcp/tools/list --cert A8AC0611C60677CA8569C4E8BE98B8B42B4E8DD3 --cacert ./certs/ca.crt -H 'Content-Type: application/json')",
+      "Bash(openssl s_client -connect localhost:9090 -cert client.crt -key client.key -CAfile ca.crt)"
+    ]
+  }
+}
