@@ -97,13 +97,10 @@ func (a *app) newHTTPHandler(enforceMTLS bool) http.Handler {
 
 	// Swagger UI static files
 	swaggerFS := http.FS(swaggerassets.Assets)
-	mux.HandleFunc("GET /swagger/", func(w http.ResponseWriter, r *http.Request) {
-		// Serve index.html at /swagger/ and /swagger
-		if r.URL.Path == "/swagger" || r.URL.Path == "/swagger/" {
-			r.URL.Path = "/swagger/index.html"
-		}
-		http.FileServer(swaggerFS).ServeHTTP(w, r)
+	mux.HandleFunc("GET /swagger", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/swagger/", http.StatusMovedPermanently)
 	})
+	mux.Handle("GET /swagger/", http.StripPrefix("/swagger/", http.FileServer(swaggerFS)))
 	mux.HandleFunc("GET /swagger.json", func(w http.ResponseWriter, r *http.Request) {
 		http.FileServer(swaggerFS).ServeHTTP(w, r)
 	})
