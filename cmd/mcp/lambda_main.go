@@ -26,5 +26,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	lambda.Start(httpadapter.New(a.newHTTPHandler(false)).ProxyWithContext)
+	// API Gateway HTTP APIs use the v2 payload format configured in Terraform.
+	// Using the v1 adapter drops the request path and causes every route to 404.
+	lambda.Start(httpadapter.NewV2(a.newHTTPHandler(false)).ProxyWithContext)
 }
