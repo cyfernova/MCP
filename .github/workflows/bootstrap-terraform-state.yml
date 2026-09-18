@@ -12,10 +12,6 @@ on:
         description: Globally unique S3 bucket name for Terraform state
         required: true
         type: string
-      lock_table_name:
-        description: DynamoDB table name for Terraform locks
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -41,15 +37,14 @@ jobs:
           aws-region: ${{ inputs.aws_region }}
 
       # The first init intentionally uses local state. After creating the
-      # bucket/table, the second init migrates that state into S3.
+      # bucket, the second init migrates that state into S3.
       - name: Create remote-state resources
         working-directory: infra/bootstrap
         run: |
           terraform init -backend=false -input=false
           terraform apply -auto-approve -input=false \
             -var="aws_region=${{ inputs.aws_region }}" \
-            -var="state_bucket_name=${{ inputs.state_bucket_name }}" \
-            -var="lock_table_name=${{ inputs.lock_table_name }}"
+            -var="state_bucket_name=${{ inputs.state_bucket_name }}"
 
       - name: Migrate bootstrap state to S3
         working-directory: infra/bootstrap
@@ -58,5 +53,5 @@ jobs:
             -backend-config="bucket=${{ inputs.state_bucket_name }}" \
             -backend-config="key=bootstrap/terraform.tfstate" \
             -backend-config="region=${{ inputs.aws_region }}" \
-            -backend-config="dynamodb_table=${{ inputs.lock_table_name }}" \
+            -backend-config="use_lockfile=true" \
             -backend-config="encrypt=true"

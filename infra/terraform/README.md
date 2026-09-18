@@ -8,9 +8,9 @@ does not apply at the API Gateway edge.
 ## GitHub Actions production deployment
 
 Run **Bootstrap Terraform State** once from the Actions tab before enabling the
-production deployment. Give it a globally unique S3 bucket name and a DynamoDB
-lock-table name. It creates versioned, encrypted state storage and migrates its
-own state into that bucket.
+production deployment. Give it a globally unique S3 bucket name. It creates
+versioned, encrypted state storage with native S3 lockfiles and migrates its own
+state into that bucket.
 
 Configure the following repository or `production` environment variables:
 
@@ -20,7 +20,6 @@ Configure the following repository or `production` environment variables:
 | `AWS_REGION` | Region for all deployment resources. |
 | `AWS_ACCOUNT_ID` | The 12-digit new AWS account ID; deployment fails if credentials belong to another account. |
 | `TF_STATE_BUCKET` | S3 bucket created by the bootstrap workflow. |
-| `TF_LOCK_TABLE` | DynamoDB table created by the bootstrap workflow. |
 | `MCP_NAME` | Resource and ECR repository name; lowercase letters, digits, hyphens. |
 | `MCP_BACKEND_BASE_URL` | Backend API base URL; API Gateway stage prefixes such as `/dev` are supported. |
 
