@@ -1,0 +1,9 @@
+.git
+.gocache
+bin
+certs
+.env
+.env.local
+swagger.json
+infra
+*.log

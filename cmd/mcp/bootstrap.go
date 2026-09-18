@@ -56,6 +56,28 @@ func newApp(ctx context.Context, cfg config.Config, log *slog.Logger) (*app, err
 }
 
 func (a *app) newHTTPServer() (*http.Server, error) {
+	handler := a.newHTTPHandler(true)
+
+	tlsCfg, err := mtls.LoadServerTLSConfig(a.cfg.TLS.CertFile, a.cfg.TLS.KeyFile, a.cfg.TLS.CAFile)
+	if err != nil {
+		return nil, fmt.Errorf("configure mTLS: %w", err)
+	}
+
+	return &http.Server{
+		Addr:              a.cfg.ListenAddr,
+		Handler:           handler,
+		TLSConfig:         tlsCfg,
+		ReadHeaderTimeout: a.cfg.Server.ReadHeaderTimeout,
+		ReadTimeout:       a.cfg.Server.ReadTimeout,
+		WriteTimeout:      a.cfg.Server.WriteTimeout,
+		IdleTimeout:       a.cfg.Server.IdleTimeout,
+	}, nil
+}
+
+// newHTTPHandler builds the protocol handler shared by server and Lambda
+// deployments. API Gateway terminates TLS, so Lambda skips the direct-server
+// client-certificate check while retaining JWT authorization.
+func (a *app) newHTTPHandler(enforceMTLS bool) http.Handler {
 	streamableHandler := mcpgo.NewStreamableHTTPHandler(
 		func(_ *http.Request) *mcpgo.Server {
 			return a.mcpServer
@@ -90,20 +112,9 @@ func (a *app) newHTTPServer() (*http.Server, error) {
 	mux.Handle("/mcp", streamableHandler)
 	mux.Handle("/mcp/", streamableHandler)
 
-	handler := middleware.RequestID(middleware.Logging(a.log)(mux))
-
-	tlsCfg, err := mtls.LoadServerTLSConfig(a.cfg.TLS.CertFile, a.cfg.TLS.KeyFile, a.cfg.TLS.CAFile)
-	if err != nil {
-		return nil, fmt.Errorf("configure mTLS: %w", err)
+	var handler http.Handler = mux
+	if enforceMTLS {
+		handler = a.requireMTLS(handler)
 	}
-
-	return &http.Server{
-		Addr:              a.cfg.ListenAddr,
-		Handler:           handler,
-		TLSConfig:         tlsCfg,
-		ReadHeaderTimeout: a.cfg.Server.ReadHeaderTimeout,
-		ReadTimeout:       a.cfg.Server.ReadTimeout,
-		WriteTimeout:      a.cfg.Server.WriteTimeout,
-		IdleTimeout:       a.cfg.Server.IdleTimeout,
-	}, nil
+	return middleware.RequestID(middleware.Logging(a.log)(handler))
 }
