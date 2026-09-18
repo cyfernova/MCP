@@ -8,3 +8,6 @@ swagger.json
 .claude/
 *.log
 .terraform/
+*.tfstate
+*.tfstate.*
+crash.log

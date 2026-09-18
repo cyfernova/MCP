@@ -5,14 +5,48 @@ AWS terminates public TLS. The Lambda adapter preserves the application's JWT,
 tool allowlist, schema validation, and rate-limit controls; direct server mTLS
 does not apply at the API Gateway edge.
 
-## Deploy
+## GitHub Actions production deployment
+
+Run **Bootstrap Terraform State** once from the Actions tab before enabling the
+production deployment. Give it a globally unique S3 bucket name and a DynamoDB
+lock-table name. It creates versioned, encrypted state storage and migrates its
+own state into that bucket.
+
+Configure the following repository or `production` environment variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `AWS_DEPLOY_ROLE_ARN` | IAM role ARN trusted by this GitHub repository through OIDC. |
+| `AWS_REGION` | Region for all deployment resources. |
+| `TF_STATE_BUCKET` | S3 bucket created by the bootstrap workflow. |
+| `TF_LOCK_TABLE` | DynamoDB table created by the bootstrap workflow. |
+| `MCP_NAME` | Resource and ECR repository name; lowercase letters, digits, hyphens. |
+| `MCP_BACKEND_BASE_URL` | Backend API base URL. |
+| `MCP_AUTH_JWKS_URL` | JWT JWKS endpoint. |
+| `MCP_AUTH_ISSUER` | Expected JWT issuer. |
+| `MCP_AUTH_AUDIENCE` | Expected JWT audience/client ID. |
+
+The production job requires GitHub's `production` environment, so its protection
+rules can require approval before Terraform applies. On every push to `main`, it
+ensures ECR exists, pushes an `linux/amd64` Lambda image, resolves its digest,
+and applies that immutable digest to Lambda.
+
+The IAM role must allow the Terraform-managed AWS resources plus ECR push
+operations. Its OIDC trust policy should restrict the GitHub subject to this
+repository and the `production` environment. Follow GitHub's current
+[AWS OIDC guidance](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws)
+when creating the trust policy, since the subject claim format varies by
+repository and environment configuration.
+
+## Manual deploy
 
 1. Copy `terraform.tfvars.example` to `terraform.tfvars` and set the backend
-   and identity-provider values.
+   and identity-provider values. This mode uses local Terraform state; use the
+   GitHub Actions path above for production state management.
 2. Create the ECR repository first:
 
    ```sh
-   terraform init
+   terraform init -backend=false
    terraform apply -target=aws_ecr_repository.mcp -target=aws_ecr_lifecycle_policy.mcp
    ```
 
