@@ -81,6 +81,16 @@ type ServerConfig struct {
 
 // Load reads environment configuration and applies safe defaults.
 func Load() (Config, error) {
+	return load(true)
+}
+
+// LoadForLambda loads configuration for an API Gateway/Lambda deployment.
+// TLS is terminated by API Gateway, so local certificates are not required.
+func LoadForLambda() (Config, error) {
+	return load(false)
+}
+
+func load(requireTLS bool) (Config, error) {
 	cfg := Config{
 		ListenAddr: getEnv("MCP_LISTEN_ADDR", defaultListenAddr),
 		LogLevel:   strings.ToLower(getEnv("LOG_LEVEL", defaultLogLevel)),
@@ -138,14 +148,16 @@ func Load() (Config, error) {
 	}
 	cfg.RateLimit.Burst = burst
 
-	if cfg.TLS.CertFile == "" {
-		return Config{}, errors.New("MCP_TLS_CERT_FILE is required")
-	}
-	if cfg.TLS.KeyFile == "" {
-		return Config{}, errors.New("MCP_TLS_KEY_FILE is required")
-	}
-	if cfg.TLS.CAFile == "" {
-		return Config{}, errors.New("MCP_TLS_CA_FILE is required")
+	if requireTLS {
+		if cfg.TLS.CertFile == "" {
+			return Config{}, errors.New("MCP_TLS_CERT_FILE is required")
+		}
+		if cfg.TLS.KeyFile == "" {
+			return Config{}, errors.New("MCP_TLS_KEY_FILE is required")
+		}
+		if cfg.TLS.CAFile == "" {
+			return Config{}, errors.New("MCP_TLS_CA_FILE is required")
+		}
 	}
 
 	if cfg.LogLevel != "debug" && cfg.LogLevel != "info" && cfg.LogLevel != "warn" && cfg.LogLevel != "error" {

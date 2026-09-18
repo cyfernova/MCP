@@ -10,6 +10,11 @@ require (
 )
 
 require (
+	github.com/aws/aws-lambda-go v1.50.0 // indirect
+	github.com/awslabs/aws-lambda-go-api-proxy v0.16.2 // indirect
+)
+
+require (
 	github.com/google/jsonschema-go v0.4.2 // indirect
 	github.com/modelcontextprotocol/go-sdk v1.3.0
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect

@@ -1,0 +1,7 @@
+aws_region       = "us-east-1"
+name             = "cyfernova-mcp"
+image_uri        = "123456789012.dkr.ecr.us-east-1.amazonaws.com/cyfernova-mcp@sha256:replace-after-push"
+backend_base_url = "https://backend.example.com"
+auth_jwks_url    = "https://backend.example.com/.well-known/jwks.json"
+auth_issuer      = "https://backend.example.com"
+auth_audience    = "mcp"
