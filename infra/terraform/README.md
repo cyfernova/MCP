@@ -18,6 +18,7 @@ Configure the following repository or `production` environment variables:
 | --- | --- |
 | `AWS_DEPLOY_ROLE_ARN` | IAM role ARN trusted by this GitHub repository through OIDC. |
 | `AWS_REGION` | Region for all deployment resources. |
+| `AWS_ACCOUNT_ID` | The 12-digit new AWS account ID; deployment fails if credentials belong to another account. |
 | `TF_STATE_BUCKET` | S3 bucket created by the bootstrap workflow. |
 | `TF_LOCK_TABLE` | DynamoDB table created by the bootstrap workflow. |
 | `MCP_NAME` | Resource and ECR repository name; lowercase letters, digits, hyphens. |
