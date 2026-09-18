@@ -17,7 +17,7 @@ Configure the following repository or `production` environment variables:
 | Variable | Purpose |
 | --- | --- |
 | `AWS_DEPLOY_ROLE_ARN` | IAM role ARN trusted by this GitHub repository through OIDC. |
-| `AWS_REGION` | Region for all deployment resources. |
+| `AWS_REGION` | Region for all deployment resources; use `ap-south-1` for this deployment. |
 | `AWS_ACCOUNT_ID` | The 12-digit new AWS account ID; deployment fails if credentials belong to another account. |
 | `TF_STATE_BUCKET` | S3 bucket created by the bootstrap workflow. |
 | `MCP_NAME` | Resource and ECR repository name; lowercase letters, digits, hyphens. |
@@ -51,7 +51,7 @@ repository and environment configuration.
 
    ```sh
    REPOSITORY=$(terraform output -raw ecr_repository_url)
-   aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin "${REPOSITORY%/*}"
+   aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin "${REPOSITORY%/*}"
    docker build --platform linux/amd64 -f Dockerfile.lambda -t "$REPOSITORY:2026-09-18" .
    docker push "$REPOSITORY:2026-09-18"
    ```
