@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
-
 	"github.com/google/uuid"
 	mcpgo "github.com/modelcontextprotocol/go-sdk/mcp"
 

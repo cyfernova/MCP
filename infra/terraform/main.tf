@@ -77,9 +77,6 @@ resource "aws_lambda_function" "mcp" {
   environment {
     variables = {
       BACKEND_BASE_URL = var.backend_base_url
-      AUTH_JWKS_URL    = var.auth_jwks_url
-      AUTH_ISSUER      = var.auth_issuer
-      AUTH_AUDIENCE    = var.auth_audience
       RATE_LIMIT_RPS   = tostring(var.rate_limit_rps)
       RATE_LIMIT_BURST = tostring(var.rate_limit_burst)
       LOG_LEVEL        = "info"

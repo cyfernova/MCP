@@ -14,8 +14,8 @@ import (
 const (
 	defaultListenAddr       = ":9090"
 	defaultBackendBaseURL   = "https://2msvdt2oba.execute-api.us-east-1.amazonaws.com/"
-	defaultJWKSURL          = "https://2msvdt2oba.execute-api.us-east-1.amazonaws.com/.well-known/jwks.json"
-	defaultIssuer           = "your-backend"
+	defaultJWKSURL          = ""
+	defaultIssuer           = ""
 	defaultAudience         = "mcp"
 	defaultRateLimitRPS     = 5
 	defaultRateLimitBurst   = 10
@@ -166,8 +166,16 @@ func load(requireTLS bool) (Config, error) {
 	if err := validateEndpointURL("BACKEND_BASE_URL", cfg.Backend.BaseURL); err != nil {
 		return Config{}, err
 	}
-	if err := validateEndpointURL("AUTH_JWKS_URL", cfg.Auth.JWKSURL); err != nil {
-		return Config{}, err
+	if cfg.Auth.JWKSURL != "" {
+		if err := validateEndpointURL("AUTH_JWKS_URL", cfg.Auth.JWKSURL); err != nil {
+			return Config{}, err
+		}
+	}
+	if cfg.Auth.Issuer == "" && cfg.Auth.JWKSURL != "" {
+		return Config{}, errors.New("AUTH_ISSUER is required when AUTH_JWKS_URL is configured")
+	}
+	if cfg.Auth.Issuer != "" && cfg.Auth.JWKSURL == "" {
+		return Config{}, errors.New("AUTH_JWKS_URL is required when AUTH_ISSUER is configured")
 	}
 
 	return cfg, nil
