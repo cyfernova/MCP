@@ -30,7 +30,7 @@ variable "image_uri" {
 }
 
 variable "backend_base_url" {
-  description = "HTTPS base URL of the backend API proxied by MCP."
+  description = "HTTPS base URL of the backend API proxied by MCP. May include an API Gateway stage prefix, such as /dev."
   type        = string
 }
 

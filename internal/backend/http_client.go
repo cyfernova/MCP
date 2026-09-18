@@ -107,10 +107,13 @@ func (c *Client) Do(ctx context.Context, req Request) (*Response, error) {
 		return nil, fmt.Errorf("backend method is required")
 	}
 
-	requestURL := c.baseURL.ResolveReference(&url.URL{
-		Path:     req.Path,
-		RawQuery: req.Query.Encode(),
-	})
+	// Preserve a path prefix in BACKEND_BASE_URL. API Gateway deployments often
+	// use a stage prefix (for example, https://api.example.com/dev), which must
+	// remain present when a tool route such as /api/v1/invoices is forwarded.
+	requestURL := *c.baseURL
+	requestURL.Path = strings.TrimRight(c.baseURL.Path, "/") + "/" + strings.TrimLeft(req.Path, "/")
+	requestURL.RawPath = ""
+	requestURL.RawQuery = req.Query.Encode()
 
 	var bodyReader io.Reader
 	if len(req.Body) > 0 {

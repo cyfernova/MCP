@@ -11,3 +11,4 @@ swagger.json
 *.tfstate
 *.tfstate.*
 crash.log
+.gocache
