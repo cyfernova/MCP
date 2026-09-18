@@ -1,7 +1,22 @@
+data "aws_caller_identity" "current" {}
+
+resource "terraform_data" "account_guard" {
+  input = data.aws_caller_identity.current.account_id
+
+  lifecycle {
+    precondition {
+      condition     = data.aws_caller_identity.current.account_id == var.expected_aws_account_id
+      error_message = "AWS credentials are for account ${data.aws_caller_identity.current.account_id}, not expected account ${var.expected_aws_account_id}."
+    }
+  }
+}
+
 resource "aws_ecr_repository" "mcp" {
   name                 = var.name
   image_tag_mutability = "IMMUTABLE"
   force_delete         = false
+
+  depends_on = [terraform_data.account_guard]
 
   image_scanning_configuration {
     scan_on_push = true
@@ -76,7 +91,10 @@ resource "aws_lambda_function" "mcp" {
     log_group  = aws_cloudwatch_log_group.mcp.name
   }
 
-  depends_on = [aws_iam_role_policy_attachment.lambda_logging]
+  depends_on = [
+    aws_iam_role_policy_attachment.lambda_logging,
+    terraform_data.account_guard,
+  ]
 }
 
 resource "aws_apigatewayv2_api" "mcp" {
