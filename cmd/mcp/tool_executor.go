@@ -81,6 +81,14 @@ func (a *app) executeToolCall(ctx context.Context, toolName string, rawArgs json
 	}
 
 	if bearerToken != "" {
+		if a.verifier == nil {
+			status = http.StatusServiceUnavailable
+			return nil, status, backendRoute, routeFamily, &apiError{
+				HTTPStatus: status,
+				Code:       "jwt_verification_not_configured",
+				Message:    "JWT verification is not configured",
+			}
+		}
 		principal, verifyErr := a.verifier.Verify(ctx, bearerToken)
 		if verifyErr != nil {
 			status = http.StatusUnauthorized

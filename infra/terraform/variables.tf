@@ -34,22 +34,6 @@ variable "backend_base_url" {
   type        = string
 }
 
-variable "auth_jwks_url" {
-  description = "HTTPS JWKS endpoint used to validate delegated JWTs."
-  type        = string
-}
-
-variable "auth_issuer" {
-  description = "Expected issuer claim for delegated JWTs."
-  type        = string
-}
-
-variable "auth_audience" {
-  description = "Expected audience or client_id claim for delegated JWTs."
-  type        = string
-  default     = "mcp"
-}
-
 variable "lambda_memory_mb" {
   description = "Lambda memory allocation in MB."
   type        = number

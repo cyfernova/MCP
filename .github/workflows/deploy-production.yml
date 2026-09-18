@@ -27,9 +27,6 @@ env:
   TF_VAR_expected_aws_account_id: ${{ vars.AWS_ACCOUNT_ID }}
   TF_VAR_name: ${{ vars.MCP_NAME }}
   TF_VAR_backend_base_url: ${{ vars.MCP_BACKEND_BASE_URL }}
-  TF_VAR_auth_jwks_url: ${{ vars.MCP_AUTH_JWKS_URL }}
-  TF_VAR_auth_issuer: ${{ vars.MCP_AUTH_ISSUER }}
-  TF_VAR_auth_audience: ${{ vars.MCP_AUTH_AUDIENCE }}
 
 jobs:
   deploy:
@@ -45,7 +42,7 @@ jobs:
           TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
           TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE }}
         run: |
-          for name in AWS_DEPLOY_ROLE_ARN TF_STATE_BUCKET TF_LOCK_TABLE TF_VAR_aws_region TF_VAR_expected_aws_account_id TF_VAR_name TF_VAR_backend_base_url TF_VAR_auth_jwks_url TF_VAR_auth_issuer TF_VAR_auth_audience; do
+          for name in AWS_DEPLOY_ROLE_ARN TF_STATE_BUCKET TF_LOCK_TABLE TF_VAR_aws_region TF_VAR_expected_aws_account_id TF_VAR_name TF_VAR_backend_base_url; do
             if [ -z "${!name}" ]; then
               echo "Missing required GitHub Actions variable: ${name#TF_VAR_}"
               exit 1

@@ -24,18 +24,21 @@ func newApp(ctx context.Context, cfg config.Config, log *slog.Logger) (*app, err
 		return nil, fmt.Errorf("create backend client: %w", err)
 	}
 
-	verifier, err := auth.NewVerifier(ctx, auth.VerifyConfig{
-		Issuer:               cfg.Auth.Issuer,
-		Audience:             cfg.Auth.Audience,
-		AllowedSigningAlgs:   cfg.Auth.AllowedSigningAlgs,
-		ClockSkew:            cfg.Auth.JWTClockSkew,
-		JWKSURL:              cfg.Auth.JWKSURL,
-		JWKSRefreshInterval:  cfg.Auth.JWKSRefreshInterval,
-		JWKSHTTPTimeout:      cfg.Auth.JWKSHTTPTimeout,
-		UnknownKIDMinRefresh: cfg.Auth.UnknownKIDMinRefresh,
-	}, log.With("component", "auth"))
-	if err != nil {
-		return nil, fmt.Errorf("initialize JWT verifier: %w", err)
+	var verifier *auth.Verifier
+	if cfg.Auth.JWKSURL != "" {
+		verifier, err = auth.NewVerifier(ctx, auth.VerifyConfig{
+			Issuer:               cfg.Auth.Issuer,
+			Audience:             cfg.Auth.Audience,
+			AllowedSigningAlgs:   cfg.Auth.AllowedSigningAlgs,
+			ClockSkew:            cfg.Auth.JWTClockSkew,
+			JWKSURL:              cfg.Auth.JWKSURL,
+			JWKSRefreshInterval:  cfg.Auth.JWKSRefreshInterval,
+			JWKSHTTPTimeout:      cfg.Auth.JWKSHTTPTimeout,
+			UnknownKIDMinRefresh: cfg.Auth.UnknownKIDMinRefresh,
+		}, log.With("component", "auth"))
+		if err != nil {
+			return nil, fmt.Errorf("initialize JWT verifier: %w", err)
+		}
 	}
 
 	toolReg, err := tools.NewRegistry()

@@ -23,9 +23,6 @@ Configure the following repository or `production` environment variables:
 | `TF_LOCK_TABLE` | DynamoDB table created by the bootstrap workflow. |
 | `MCP_NAME` | Resource and ECR repository name; lowercase letters, digits, hyphens. |
 | `MCP_BACKEND_BASE_URL` | Backend API base URL; API Gateway stage prefixes such as `/dev` are supported. |
-| `MCP_AUTH_JWKS_URL` | JWT JWKS endpoint. |
-| `MCP_AUTH_ISSUER` | Expected JWT issuer. |
-| `MCP_AUTH_AUDIENCE` | Expected JWT audience/client ID. |
 
 The production job requires GitHub's `production` environment, so its protection
 rules can require approval before Terraform applies. On every push to `main`, it
@@ -42,7 +39,7 @@ repository and environment configuration.
 ## Manual deploy
 
 1. Copy `terraform.tfvars.example` to `terraform.tfvars` and set the backend
-   and identity-provider values. This mode uses local Terraform state; use the
+   values. This mode uses local Terraform state; use the
    GitHub Actions path above for production state management.
 2. Create the ECR repository first:
 
