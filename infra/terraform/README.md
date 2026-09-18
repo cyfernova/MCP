@@ -22,7 +22,7 @@ Configure the following repository or `production` environment variables:
 | `TF_STATE_BUCKET` | S3 bucket created by the bootstrap workflow. |
 | `TF_LOCK_TABLE` | DynamoDB table created by the bootstrap workflow. |
 | `MCP_NAME` | Resource and ECR repository name; lowercase letters, digits, hyphens. |
-| `MCP_BACKEND_BASE_URL` | Backend API base URL. |
+| `MCP_BACKEND_BASE_URL` | Backend API base URL; API Gateway stage prefixes such as `/dev` are supported. |
 | `MCP_AUTH_JWKS_URL` | JWT JWKS endpoint. |
 | `MCP_AUTH_ISSUER` | Expected JWT issuer. |
 | `MCP_AUTH_AUDIENCE` | Expected JWT audience/client ID. |

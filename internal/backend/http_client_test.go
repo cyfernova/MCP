@@ -72,3 +72,36 @@ func TestDoBlocksSensitiveHeadersAndPreservesContentType(t *testing.T) {
 		t.Fatalf("X-Request-ID should be forwarded, got %q", got)
 	}
 }
+
+func TestDoPreservesBackendBaseURLPathPrefix(t *testing.T) {
+	client, err := NewClient("https://api.example.com/dev", 2*time.Second, 1<<20)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+
+	var captured *http.Request
+	client.httpClient = &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			captured = req.Clone(req.Context())
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader(`{"ok":true}`)),
+			}, nil
+		}),
+	}
+
+	_, err = client.Do(context.Background(), Request{
+		Method: http.MethodGet,
+		Path:   "/api/v1/invoices",
+	})
+	if err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if captured == nil {
+		t.Fatal("expected request to be captured")
+	}
+	if got, want := captured.URL.Path, "/dev/api/v1/invoices"; got != want {
+		t.Fatalf("backend path = %q, want %q", got, want)
+	}
+}
